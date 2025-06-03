@@ -4,9 +4,7 @@ import csv
 import sys
 import string
 
-
-def flatten(xss):
-    return [x for xs in xss for x in xs]
+import lib
 
 def minus(m):
     """
@@ -21,33 +19,10 @@ def minus(m):
         return (str(i) for i in range(int(s or '1'), int(e or '1') + 1))
 
 def parse(spec_string):
-    return flatten([minus(i) for i in spec_string.split(',')])
-
-def split(line):
-    ws = [' ','\t','\n','\r']
-    sep = False
-    buf = ''
-    for i in range(len(line)):
-        c = line[i]
-        if c in ws:
-            if sep:
-                buf += c
-            else:
-                yield buf
-                sep = True
-                buf = c
-        else:
-            if sep:
-                yield buf
-                sep = False
-                buf = c
-            else:
-                buf += c
-    yield buf
-
+    return lib.flatten([minus(i) for i in spec_string.split(',')])
 
 def build(speced, line):
-    parts = list(split(line))
+    parts = list(lib.split([' ','\t','\n','\r'])(line))
     def get(i):
         try:
             return parts[i]
@@ -78,6 +53,9 @@ def run_tests():
     doctest.testmod()
 
 def main(args):
+    if len(args) < 2:
+      print('nothing to do')
+      return
     arg = args[1]
     if arg == 'test':
         run_tests()
