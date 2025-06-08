@@ -107,6 +107,27 @@ def pick(indices):
                 yield ''
     return _pick
 
+def pick_range(a, b):
+    """
+    >>> Flow() | pick_range(2, 3) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
+    ['c', 'e']
+    >>> Flow() | pick_range(2, None) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
+    ['c', 'e', 'g']
+    >>> Flow() | pick_range(None, 3) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
+    ['a', 'c', 'e']
+    >>> Flow() | pick_range(None, None) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
+    ['a', 'c', 'e', 'g']
+    >>> Flow() | pick_range(2, 3) | list < { 'fields': ['a', 'c'], 'junk': ['b'] }
+    ['c', '']
+    >>> Flow() | pick_range(1, None) | list < { 'fields': ['a', 'c'], 'junk': ['b'] }
+    ['a', 'c']
+    >>> Flow() | pick_range(None, 3) | list < { 'fields': ['a', 'c'], 'junk': ['b'] }
+    ['a', 'c', '']
+    """
+    def _pick(chunks: Split):
+        yield from pick(range(a or 1, (b or len(chunks['fields'])) + 1))(chunks)
+    return _pick
+
 def concat(indices):
     """
     >>> Flow() | concat([4, 1, 3, 1]) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
@@ -116,6 +137,27 @@ def concat(indices):
     """
     def _concat(chunks: Split):
         return [''.join(pick(indices)(chunks))]
+    return _concat
+
+def concat_range(a, b):
+    """
+    >>> Flow() | concat_range(2, 3) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
+    ['ce']
+    >>> Flow() | concat_range(2, None) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
+    ['ceg']
+    >>> Flow() | concat_range(None, 3) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
+    ['ace']
+    >>> Flow() | concat_range(None, None) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
+    ['aceg']
+    >>> Flow() | concat_range(2, 3) | list < { 'fields': ['a', 'c'], 'junk': ['b'] }
+    ['c']
+    >>> Flow() | concat_range(1, None) | list < { 'fields': ['a', 'c'], 'junk': ['b'] }
+    ['ac']
+    >>> Flow() | concat_range(None, 3) | list < { 'fields': ['a', 'c'], 'junk': ['b'] }
+    ['ac']
+    """
+    def _concat(chunks: Split):
+        return [''.join(pick_range(a, b)(chunks))]
     return _concat
 
 def blend(chop, *glues):
