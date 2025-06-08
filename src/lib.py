@@ -2,10 +2,20 @@
 
 from typing import TypedDict
 
+def identity(x):
+    return x
+
+def flatten(xss):
+    """
+    >>> flatten([['ab', 12], ['cd', 34]])
+    ['ab', 12, 'cd', 34]
+    """
+    return [x for xs in xss for x in xs]
+
 class Pipe:
     """
-    >>> Pipe(3) | (lambda x: 2 * x) | None
-    6
+    >>> Pipe(3) | (lambda x: x + 10) | (lambda x: 2 * x) | None
+    26
     """
     def __init__(self, raw):
         self._raw = raw
@@ -15,13 +25,20 @@ class Pipe:
             return self._raw
         return Pipe(f(self._raw))
 
-def flatten(xss):
+class Flow:
     """
-    >>> flatten([['ab', 12], ['cd', 34]])
-    ['ab', 12, 'cd', 34]
+    >>> (Flow() | (lambda x: x + 10) | (lambda x: 2 * x) | None) (3)
+    26
     """
-    return [x for xs in xss for x in xs]
+    def __init__(self, f1=identity):
+        self._f1 = f1
 
+    def __or__(self, f2):
+        if f2 is None:
+            return self._f1
+        def f3(raw):
+            return f2(self._f1(raw))
+        return Flow(f3)
 
 class Split(TypedDict):
     pattern: str
@@ -103,6 +120,10 @@ def blend(chop, *glues):
     ['1234', '3412']
     >>> Pipe([example]) | blend(split(' '), pick([1, 3])) | blend(split('-'), pick([2])) | list | None
     ['12', '56']
+    >>> Pipe(['cd-34']) | blend(split('-'), pick([1, 2])) | list | None
+    ['cd', '34']
+    >>> Pipe([example]) | blend(split(' '), pick([1]), Flow() | pick([2]) | blend(split('-'), pick([1, 2])) | None, pick([3, 4])) | list | None
+    ['ab-12', 'cd', '34', 'ab-56', 'cd-78']
     """
     def _blend(strings):
         for string in strings:
