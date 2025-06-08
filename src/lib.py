@@ -29,6 +29,8 @@ class Flow:
     """
     >>> (Flow() | (lambda x: x + 10) | (lambda x: 2 * x) | None) (3)
     26
+    >>> Flow() | (lambda x: x + 10) | (lambda x: 2 * x) < 3
+    26
     """
     def __init__(self, f1=identity):
         self._f1 = f1
@@ -40,6 +42,9 @@ class Flow:
             return f2(self._f1(raw))
         return Flow(f3)
 
+    def __lt__(self, x):
+        return self._f1(x)
+
 class Split(TypedDict):
     pattern: str
     fields: list[str]
@@ -48,11 +53,11 @@ class Split(TypedDict):
 def split(pattern: str):
     """
     >>> example = 'ab-12 cd-34 ab-56 cd-78'
-    >>> Pipe(example) | split(' ') | None
+    >>> Flow() | split(' ') < example
     {'pattern': ' ', 'fields': ['ab-12', 'cd-34', 'ab-56', 'cd-78'], 'junk': [' ', ' ', ' ']}
-    >>> Pipe(example) | split('- ') | None
+    >>> Flow() | split('- ') < example
     {'pattern': '- ', 'fields': ['ab', '12', 'cd', '34', 'ab', '56', 'cd', '78'], 'junk': ['-', ' ', '-', ' ', '-', ' ', '-']}
-    >>> Pipe(example) | split('ba78-') | None
+    >>> Flow() | split('ba78-') < example
     {'pattern': 'ba78-', 'fields': ['', '12 cd', '34 ', '56 cd', ''], 'junk': ['ab-', '-', 'ab-', '-78']}
     """
     def _split(string: str) -> Split:
@@ -89,9 +94,9 @@ def split(pattern: str):
 
 def pick(indices):
     """
-    >>> Pipe({ 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }) | pick([4, 1, 3, 1]) | list | None
+    >>> Flow() | pick([4, 1, 3, 1]) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
     ['g', 'a', 'e', 'a']
-    >>> Pipe({ 'fields': ['a'], 'junk': ['b'] }) | pick([1, 2, 3]) | list | None
+    >>> Flow() | pick([1, 2, 3]) | list < { 'fields': ['a'], 'junk': ['b'] }
     ['a', '', '']
     """
     def _pick(chunks: Split):
@@ -104,9 +109,9 @@ def pick(indices):
 
 def concat(indices):
     """
-    >>> Pipe({ 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }) | concat([4, 1, 3, 1]) | list | None
+    >>> Flow() | concat([4, 1, 3, 1]) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
     ['gaea']
-    >>> Pipe({ 'fields': ['a'], 'junk': ['b'] }) | concat([1, 2, 3]) | list | None
+    >>> Flow() | concat([1, 2, 3]) | list < { 'fields': ['a'], 'junk': ['b'] }
     ['a']
     """
     def _concat(chunks: Split):
@@ -116,13 +121,13 @@ def concat(indices):
 def blend(chop, *glues):
     """
     >>> example = 'ab-12 cd-34 ab-56 cd-78'
-    >>> Pipe([example]) | blend(split('- '), concat([2, 4]), concat([4, 2])) | list | None
+    >>> Flow() | blend(split('- '), concat([2, 4]), concat([4, 2])) | list < [example]
     ['1234', '3412']
-    >>> Pipe([example]) | blend(split(' '), pick([1, 3])) | blend(split('-'), pick([2])) | list | None
+    >>> Flow() | blend(split(' '), pick([1, 3])) | blend(split('-'), pick([2])) | list < [example]
     ['12', '56']
-    >>> Pipe(['cd-34']) | blend(split('-'), pick([1, 2])) | list | None
+    >>> Flow() | blend(split('-'), pick([1, 2])) | list < ['cd-34']
     ['cd', '34']
-    >>> Pipe([example]) | blend(split(' '), pick([1]), Flow() | pick([2]) | blend(split('-'), pick([1, 2])) | None, pick([3, 4])) | list | None
+    >>> Flow() | blend(split(' '), pick([1]), Flow() | pick([2]) | blend(split('-'), pick([1, 2])) | None, pick([3, 4])) | list < [example]
     ['ab-12', 'cd', '34', 'ab-56', 'cd-78']
     """
     def _blend(strings):
