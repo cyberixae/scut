@@ -5,43 +5,32 @@ import sys
 import lib
 import output
 
-def minus(m):
+def process(spec):
     """
-    >>> list(minus('1-3'))
-    ['1', '2', '3']
-    """
-    parts = m.split('-')
-    if len(parts) == 1:
-        return parts
-    if len(parts) == 2:
-        [s, e] = parts
-        return (str(i) for i in range(int(s or '1'), int(e or '1') + 1))
-
-def parse(spec_string):
-    return lib.flatten([minus(i) for i in spec_string.split(',')])
-
-def build(speced, line):
-    parts = list(lib.split(' \t\n\r')(line))
-    def get(i):
-        try:
-            return parts[i]
-        except:
-            return ''
-    glued = [' '.join([get((int(x)-1)*2) for x in p.split('+')]) for p in speced]
-    return glued
-
-def test(spec, line):
-    """
-    >>> test('1-12', "lrwxr-xr-- 1 user group    123 May 25 16:24 'cpu info' -> /proc/cpuinfo")
+    >>> lib.Flow() | process('1-12') | list < "lrwxr-xr-- 1 user group    123 May 25 16:24 'cpu info' -> /proc/cpuinfo"
     ['lrwxr-xr--', '1', 'user', 'group', '123', 'May', '25', '16:24', "'cpu", "info'", '->', '/proc/cpuinfo']
-    >>> test('1-5,6+7+8,9-12', "lrwxr-xr-- 1 user group    123 May 25 16:24 'cpu info' -> /proc/cpuinfo")
+    >>> lib.Flow() | process('1-5,6+7+8,9-12') | list < "lrwxr-xr-- 1 user group    123 May 25 16:24 'cpu info' -> /proc/cpuinfo"
     ['lrwxr-xr--', '1', 'user', 'group', '123', 'May 25 16:24', "'cpu", "info'", '->', '/proc/cpuinfo']
     """
-    return build(parse(spec), line)
+    def _process(line):
+        def glue(select):
+            if '-' in select:
+                [arg1, arg2] = select.split('-')
+                start = len(arg1) == 0 and None or int(arg1)
+                end = len(arg2) == 0 and None or int(arg2)
+                return lib.pick_range(start, end)
+            if '+' in select:
+                args = select.split('+')
+                indices = (int(i) for i in args)
+                return lib.concat(indices, ' ')
+            index = int(select)
+            return lib.pick(index)
+        glues = (glue(select) for select in spec.split(','))
+        return lib.blend(lib.split(' \t\n\r'), *glues)([line])
+    return _process
 
 def run(spec):
-    speced = parse(spec)
-    rows = (build(speced, line) for line in sys.stdin)
+    rows = (list(process(spec)(line)) for line in sys.stdin)
     output.output_csv_gen_head(rows, sys.stdout)
 
 def run_tests():

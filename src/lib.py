@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import TypedDict
+from typing import Iterable, List, TypedDict
 
 def identity(x):
     return x
@@ -128,7 +128,7 @@ def pick_range(a, b):
         yield from pick(range(a or 1, (b or len(chunks['fields'])) + 1))(chunks)
     return _pick
 
-def concat(indices):
+def concat(indices: Iterable[int], delimiter: str = ''):
     """
     >>> Flow() | concat([4, 1, 3, 1]) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
     ['gaea']
@@ -136,7 +136,7 @@ def concat(indices):
     ['a']
     """
     def _concat(chunks: Split):
-        return [''.join(pick(indices)(chunks))]
+        return [delimiter.join(pick(indices)(chunks))]
     return _concat
 
 def concat_range(a, b):
