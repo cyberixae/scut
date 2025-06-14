@@ -3,7 +3,7 @@
 import csv
 import json
 import string
-from typing import Iterator, List, TextIO
+from typing import Iterable, List, TextIO
 
 def head_from_len(row_len: int):
     """
@@ -20,11 +20,11 @@ def head_from_rows(rows: List[List[str]]):
     row_len = max(len(row) for row in rows)
     return head_from_len(row_len)
 
-def output_csv_no_head(rows: Iterator[List[str]], output: TextIO):
+def output_csv_no_head(output: TextIO):
     """
     >>> import io
     >>> buffer = io.StringIO()
-    >>> output_csv_no_head([[12, 34], [56, 78]], buffer)
+    >>> output_csv_no_head(buffer)([[12, 34], [56, 78]])
     >>> dos = buffer.getvalue()
     >>> unix = dos.replace('\\r\\n', '\\n')
     >>> print(unix)
@@ -32,15 +32,17 @@ def output_csv_no_head(rows: Iterator[List[str]], output: TextIO):
     56,78
     <BLANKLINE>
     """
-    w = csv.writer(output)
-    for row in rows:
-        w.writerow(row)
+    def _csv(rows: Iterable[Iterable[str]]):
+        w = csv.writer(output)
+        for row in rows:
+            w.writerow(row)
+    return _csv
 
-def output_csv_gen_head(iterator: Iterator[List[str]], output: TextIO):
+def output_csv_gen_head(output: TextIO):
     """
     >>> import io
     >>> buffer = io.StringIO()
-    >>> output_csv_gen_head([[12, 34], [56, 78]], buffer)
+    >>> output_csv_gen_head(buffer)([[12, 34], [56, 78]])
     >>> dos = buffer.getvalue()
     >>> unix = dos.replace('\\r\\n', '\\n')
     >>> print(unix)
@@ -49,16 +51,18 @@ def output_csv_gen_head(iterator: Iterator[List[str]], output: TextIO):
     56,78
     <BLANKLINE>
     """
-    rows = list(iterator)
-    head = head_from_rows(rows)
-    lines = iter((head, *rows))
-    output_csv_no_head(lines, output)
+    def _csv(iterator: Iterable[Iterable[str]]):
+        rows = [list(row) for row in iterator]
+        head = head_from_rows(rows)
+        lines = (head, *rows)
+        output_csv_no_head(output)(lines)
+    return _csv
 
-def output_json(rows: Iterator[List[str]], output: TextIO):
+def output_json(output: TextIO):
     """
     >>> import io
     >>> buffer = io.StringIO()
-    >>> output_json([[12, 34], [56, 78]], buffer)
+    >>> output_json(buffer)([[12, 34], [56, 78]])
     >>> print(buffer.getvalue())
     {
       "rows": [
@@ -70,23 +74,26 @@ def output_json(rows: Iterator[List[str]], output: TextIO):
     <BLANKLINE>
     """
     def write(indent, payload='', le='\n'):
-        output.write(indent * '  ' + payload + le )
+        output.write(indent * '  ' + payload + le)
 
-    lehe = 0
-    first = True
-    write(0, '{')
-    write(1, '"rows": [')
-    for row in rows:
-        if first:
-            first = False
-        else:
-            write(0, ',')
-        lehe = max(lehe, len(row))
-        write(2, json.dumps(row), '')
-    write(0)
-    write(1, '],')
-    write(1, '"header": ' + json.dumps(head_from_len(lehe)))
-    write(0, '}')
+    def _json(rows: Iterable[Iterable[str]]):
+        lehe = 0
+        first = True
+        write(0, '{')
+        write(1, '"rows": [')
+        for iterator in rows:
+            if first:
+                first = False
+            else:
+                write(0, ',')
+            row = list(iterator)
+            lehe = max(lehe, len(row))
+            write(2, json.dumps(row), '')
+        write(0)
+        write(1, '],')
+        write(1, '"header": ' + json.dumps(head_from_len(lehe)))
+        write(0, '}')
+    return _json
 
 if __name__ == "__main__":
     import doctest
