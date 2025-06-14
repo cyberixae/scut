@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
-import csv
 import sys
-import string
 
 import lib
+import output
 
 def minus(m):
     """
@@ -22,7 +21,7 @@ def parse(spec_string):
     return lib.flatten([minus(i) for i in spec_string.split(',')])
 
 def build(speced, line):
-    parts = list(lib.split([' ','\t','\n','\r'])(line))
+    parts = list(lib.split(' \t\n\r')(line))
     def get(i):
         try:
             return parts[i]
@@ -42,11 +41,8 @@ def test(spec, line):
 
 def run(spec):
     speced = parse(spec)
-    lehe = len(speced)
-    w = csv.writer(sys.stdout)
-    w.writerow(string.ascii_lowercase[:lehe])
-    for line in sys.stdin:
-        w.writerow(build(speced, line))
+    rows = (build(speced, line) for line in sys.stdin)
+    output.output_csv_gen_head(rows, sys.stdout)
 
 def run_tests():
     import doctest
