@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Iterable, List, TypedDict
+from typing import Iterable, TypedDict
 
 def identity(x):
     return x
