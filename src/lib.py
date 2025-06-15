@@ -7,7 +7,7 @@ class Split(TypedDict):
 
 ChopF = Callable[[str], Split]
 GlueF = Callable[[Split], Iterable[str]]
-BlendF = Callable[[str], Iterable[str]]
+BlendF = Callable[[Iterable[str]], Iterable[str]]
 
 def split(pattern: str) -> ChopF:
     """
@@ -51,7 +51,7 @@ def split(pattern: str) -> ChopF:
 
     return _split
 
-def pick(indices) -> GlueF:
+def pick(indices: Iterable[int]) -> GlueF:
     """
     >>> from util import Flow
     >>> Flow() | pick([4, 1, 3, 1]) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
@@ -67,7 +67,7 @@ def pick(indices) -> GlueF:
                 yield ''
     return _pick
 
-def pick_range(a, b) -> GlueF:
+def pick_range(a: int | None, b: int | None) -> GlueF:
     """
     >>> from util import Flow
     >>> Flow() | pick_range(2, 3) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
@@ -85,7 +85,7 @@ def pick_range(a, b) -> GlueF:
     >>> Flow() | pick_range(None, 3) | list < { 'fields': ['a', 'c'], 'junk': ['b'] }
     ['a', 'c', '']
     """
-    def _pick(chunks: Split):
+    def _pick(chunks: Split) -> Iterable[str]:
         yield from pick(range(a or 1, (b or len(chunks['fields'])) + 1))(chunks)
     return _pick
 
@@ -101,7 +101,7 @@ def concat(indices: Iterable[int], delimiter: str = '') -> GlueF:
         return [delimiter.join(pick(indices)(chunks))]
     return _concat
 
-def concat_range(a, b) -> GlueF:
+def concat_range(a: int | None, b: int | None) -> GlueF:
     """
     >>> from util import Flow
     >>> Flow() | concat_range(2, 3) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
@@ -136,7 +136,7 @@ def blend(chop: ChopF, *glues: GlueF) -> BlendF:
     >>> Flow() | blend(split(' '), pick([1]), Flow() | pick([2]) | blend(split('-'), pick([1, 2])) | None, pick([3, 4])) | list < [example]
     ['ab-12', 'cd', '34', 'ab-56', 'cd-78']
     """
-    def _blend(strings):
+    def _blend(strings: Iterable[str]) -> Iterable[str]:
         for string in strings:
             chunks = chop(string)
             for glue in glues:

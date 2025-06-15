@@ -1,5 +1,4 @@
 
-import sys
 from typing import Iterable
 import lib
 from model import Blend, Chop, Concat, ConcatRange, Glue, Pick, PickRange, Split
@@ -26,7 +25,7 @@ def process_chop(chop: Chop) -> lib.ChopF:
             return process_split(chop)
 
 def process_pick(pick: Pick) -> lib.GlueF:
-    return lib.pick(pick['index'])
+    return lib.pick(pick['indices'])
 
 def process_concat(concat: Concat) -> lib.GlueF:
     return lib.concat(concat['indices'], concat['delimiter'])

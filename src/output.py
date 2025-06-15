@@ -72,7 +72,7 @@ def output_json(output: TextIO):
     }
     <BLANKLINE>
     """
-    def write(indent, payload='', le='\n'):
+    def write(indent: int, payload: str = '', le: str = '\n'):
         output.write(indent * '  ' + payload + le)
 
     def _json(rows: Iterable[Iterable[str]]):

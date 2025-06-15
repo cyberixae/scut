@@ -4,7 +4,7 @@ import model
 
 def parse_pick(spec: str) -> model.Pick:
     index = int(spec)
-    return model.pick(index)
+    return model.pick([index])
 
 def parse_concat(spec: str) -> model.Concat:
     args = spec.split('+')

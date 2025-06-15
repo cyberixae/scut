@@ -3,17 +3,17 @@ from typing import List, Literal, TypedDict
 
 class Pick(TypedDict):
     type: Literal['pick']
-    index: int
+    indices: List[int]
 
-def pick(index: int) -> Pick:
-    return { 'type': 'pick', 'index': index }
+def pick(indices: List[int]) -> Pick:
+    return { 'type': 'pick', 'indices': indices }
 
 class Concat(TypedDict):
     type: Literal['concat']
     indices: List[int]
     delimiter: str
 
-def concat(indices: List[int], delimiter) -> Concat:
+def concat(indices: List[int], delimiter: str) -> Concat:
     return { 'type': 'concat', 'indices': indices, 'delimiter': delimiter}
 
 class PickRange(TypedDict):
@@ -38,7 +38,7 @@ class Split(TypedDict):
     type: Literal['split']
     args: str
 
-def split(args) -> Split:
+def split(args: str) -> Split:
     return { 'type': 'split', 'args': args }
 
 Chop = Split
