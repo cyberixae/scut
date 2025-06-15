@@ -1,24 +1,56 @@
 #!/usr/bin/env python3
 
-from typing import List
+from typing import List, Literal, TypedDict
 
-def pick(index: int):
+class Pick(TypedDict):
+    type: Literal['pick']
+    index: int
+
+def pick(index: int) -> Pick:
     return { 'type': 'pick', 'index': index }
 
-def concat(indices: List[int], delimiter):
+class Concat(TypedDict):
+    type: Literal['concat']
+    indices: List[int]
+    delimiter: str
+
+def concat(indices: List[int], delimiter) -> Concat:
     return { 'type': 'concat', 'indices': indices, 'delimiter': delimiter}
 
-def pick_range(start: int | None, end: int | None):
+class PickRange(TypedDict):
+    type: Literal['pick_range']
+    start: int | None
+    end: int | None
+
+def pick_range(start: int | None, end: int | None) -> PickRange:
     return { 'type': 'pick_range', 'start': start, 'end': end }
 
-def concat_range(start: int | None, end: int | None):
+class ConcatRange(TypedDict):
+    type: Literal['concat_range']
+    start: int | None
+    end: int | None
+
+def concat_range(start: int | None, end: int | None) -> ConcatRange:
     return { 'type': 'concat_range', 'start': start, 'end': end }
 
-def split(args):
+Glue = Pick | Concat | PickRange | ConcatRange
+
+class Split(TypedDict):
+    type: Literal['split']
+    args: str
+
+def split(args) -> Split:
     return { 'type': 'split', 'args': args }
 
-def blend(chop, glues):
-    return { 'type': 'blend', 'chop': chop, 'glues': glues }
+Chop = Split
+
+class Blend(TypedDict):
+    type: Literal['blend']
+    chop: Chop
+    glues: List[Glue]
+
+def blend(chop: Chop, *glues: Glue) -> Blend:
+    return { 'type': 'blend', 'chop': chop, 'glues': list(glues) }
 
 if __name__ == "__main__":
     import doctest

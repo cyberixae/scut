@@ -1,68 +1,28 @@
 #!/usr/bin/env python3
 
-from typing import Iterable, TypedDict
-
-def identity(x):
-    return x
-
-def flatten(xss):
-    """
-    >>> flatten([['ab', 12], ['cd', 34]])
-    ['ab', 12, 'cd', 34]
-    """
-    return [x for xs in xss for x in xs]
-
-class Pipe:
-    """
-    >>> Pipe(3) | (lambda x: x + 10) | (lambda x: 2 * x) | None
-    26
-    """
-    def __init__(self, raw):
-        self._raw = raw
-
-    def __or__(self, f):
-        if f is None:
-            return self._raw
-        return Pipe(f(self._raw))
-
-class Flow:
-    """
-    >>> (Flow() | (lambda x: x + 10) | (lambda x: 2 * x) | None) (3)
-    26
-    >>> Flow() | (lambda x: x + 10) | (lambda x: 2 * x) < 3
-    26
-    """
-    def __init__(self, f1=identity):
-        self._f1 = f1
-
-    def __or__(self, f2):
-        if f2 is None:
-            return self._f1
-        def f3(raw):
-            return f2(self._f1(raw))
-        return Flow(f3)
-
-    def __lt__(self, x):
-        return self._f1(x)
+from typing import Callable, Iterable, TypedDict
 
 class Split(TypedDict):
-    pattern: str
     fields: list[str]
     junk: list[str]
 
-def split(pattern: str):
+ChopF = Callable[[str], Split]
+GlueF = Callable[[Split], Iterable[str]]
+BlendF = Callable[[str], Iterable[str]]
+
+def split(pattern: str) -> ChopF:
     """
+    >>> from util import Flow
     >>> example = 'ab-12 cd-34 ab-56 cd-78'
     >>> Flow() | split(' ') < example
-    {'pattern': ' ', 'fields': ['ab-12', 'cd-34', 'ab-56', 'cd-78'], 'junk': [' ', ' ', ' ']}
+    {'fields': ['ab-12', 'cd-34', 'ab-56', 'cd-78'], 'junk': [' ', ' ', ' ']}
     >>> Flow() | split('- ') < example
-    {'pattern': '- ', 'fields': ['ab', '12', 'cd', '34', 'ab', '56', 'cd', '78'], 'junk': ['-', ' ', '-', ' ', '-', ' ', '-']}
+    {'fields': ['ab', '12', 'cd', '34', 'ab', '56', 'cd', '78'], 'junk': ['-', ' ', '-', ' ', '-', ' ', '-']}
     >>> Flow() | split('ba78-') < example
-    {'pattern': 'ba78-', 'fields': ['', '12 cd', '34 ', '56 cd', ''], 'junk': ['ab-', '-', 'ab-', '-78']}
+    {'fields': ['', '12 cd', '34 ', '56 cd', ''], 'junk': ['ab-', '-', 'ab-', '-78']}
     """
     def _split(string: str) -> Split:
         result: Split = {
-            'pattern': pattern,
             'fields': [],
             'junk': [],
 	}
@@ -92,8 +52,9 @@ def split(pattern: str):
 
     return _split
 
-def pick(indices):
+def pick(indices) -> GlueF:
     """
+    >>> from util import Flow
     >>> Flow() | pick([4, 1, 3, 1]) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
     ['g', 'a', 'e', 'a']
     >>> Flow() | pick([1, 2, 3]) | list < { 'fields': ['a'], 'junk': ['b'] }
@@ -107,8 +68,9 @@ def pick(indices):
                 yield ''
     return _pick
 
-def pick_range(a, b):
+def pick_range(a, b) -> GlueF:
     """
+    >>> from util import Flow
     >>> Flow() | pick_range(2, 3) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
     ['c', 'e']
     >>> Flow() | pick_range(2, None) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
@@ -128,8 +90,9 @@ def pick_range(a, b):
         yield from pick(range(a or 1, (b or len(chunks['fields'])) + 1))(chunks)
     return _pick
 
-def concat(indices: Iterable[int], delimiter: str = ''):
+def concat(indices: Iterable[int], delimiter: str = '') -> GlueF:
     """
+    >>> from util import Flow
     >>> Flow() | concat([4, 1, 3, 1]) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
     ['gaea']
     >>> Flow() | concat([1, 2, 3]) | list < { 'fields': ['a'], 'junk': ['b'] }
@@ -139,8 +102,9 @@ def concat(indices: Iterable[int], delimiter: str = ''):
         return [delimiter.join(pick(indices)(chunks))]
     return _concat
 
-def concat_range(a, b):
+def concat_range(a, b) -> GlueF:
     """
+    >>> from util import Flow
     >>> Flow() | concat_range(2, 3) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
     ['ce']
     >>> Flow() | concat_range(2, None) | list < { 'fields': ['a', 'c', 'e', 'g'], 'junk': ['b', 'd', 'f'] }
@@ -160,8 +124,9 @@ def concat_range(a, b):
         return [''.join(pick_range(a, b)(chunks))]
     return _concat
 
-def blend(chop, *glues):
+def blend(chop: ChopF, *glues: GlueF) -> BlendF:
     """
+    >>> from util import Flow
     >>> example = 'ab-12 cd-34 ab-56 cd-78'
     >>> Flow() | blend(split('- '), concat([2, 4]), concat([4, 2])) | list < [example]
     ['1234', '3412']

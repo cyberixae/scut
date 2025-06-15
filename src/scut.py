@@ -2,12 +2,12 @@
 
 import sys
 
-import lib
 import output
 import process
+from util import Flow
 
 def run(spec: str):
-    return lib.Flow() | process.process(spec) | output.output_csv_gen_head(sys.stdout) < sys.stdin
+    return Flow() | process.process(spec) | output.output_csv_gen_head(sys.stdout) < sys.stdin
 
 def main(args):
     if len(args) < 2:
