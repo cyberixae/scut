@@ -31,16 +31,35 @@ def parse_glue(spec: str) -> model.Glue:
 def parse_glues(spec: str) -> Iterable[model.Glue]:
     return (parse_glue(glue) for glue in spec.split(','))
 
+def parse_args(spec: str) -> Iterable[str]:
+    return [spec]
+
+def parse_chop(spec: str) -> model.Chop:
+    [chop, snd] = spec.split(':')
+    args = parse_args(snd)
+    match chop:
+        case 'split':
+            return model.split(*args)
+        case _:
+            return model.split(*args)
+
 
 def parse_blend(spec: str) -> model.Blend:
     """
-    >>> parse_blend('1-12')
-    {'type': 'blend', 'chop': {'type': 'split', 'args': ' \\t\\n\\r'}, 'glues': [{'type': 'pick_range', 'start': 1, 'end': 12}]}
+    >>> parse_blend('[d: :1-12]')
+    {'type': 'blend', 'chop': {'type': 'split', 'args': ' '}, 'glues': [{'type': 'pick_range', 'start': 1, 'end': 12}]}
     """
-    return model.blend(model.split(' \t\n\r'), *parse_glues(spec))
+    [ch, op, glues] =  spec[1:-1].split(':')
+    return model.blend(parse_chop(ch + ':' + op), *parse_glues(glues))
 
 def parse(spec: str):
-    return parse_blend(spec)
+    """
+    >>> parse('1-12')
+    {'type': 'blend', 'chop': {'type': 'split', 'args': ' \\t\\n\\r'}, 'glues': [{'type': 'pick_range', 'start': 1, 'end': 12}]}
+    """
+    if spec.startswith('['):
+        return parse_blend(spec)
+    return model.blend(model.split(' \t\n\r'), *parse_glues(spec))
 
 if __name__ == "__main__":
     import doctest

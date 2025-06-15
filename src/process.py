@@ -8,17 +8,17 @@ def process_split(split: Split) -> lib.ChopF:
     """
     >>> from util import Flow
     >>> import model
-    >>> Flow() | process_split(model.split(' \\t\\n\\r')) < "lrwxr-xr-- 1 user group    123 May 25 16:24 'cpu info' -> /proc/cpuinfo"
-    {'fields': ['lrwxr-xr--', '1', 'user', 'group', '123', 'May', '25', '16:24', "'cpu", "info'", '->', '/proc/cpuinfo'], 'junk': [' ', ' ', ' ', '    ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']}
+    >>> Flow() | process_split(model.split(' \\t\\n\\r')) | list < "lrwxr-xr-- 1 user group    123 May 25 16:24 'cpu info' -> /proc/cpuinfo"
+    ['lrwxr-xr--', '1', 'user', 'group', '123', 'May', '25', '16:24', "'cpu", "info'", '->', '/proc/cpuinfo']
     """
-    return lib.split(split['args'])
+    return lib.split_at_any_of(split['args'])
 
 def process_chop(chop: Chop) -> lib.ChopF:
     """
     >>> from util import Flow
     >>> import model
-    >>> Flow() | process_chop(model.split(' \\t\\n\\r')) < "lrwxr-xr-- 1 user group    123 May 25 16:24 'cpu info' -> /proc/cpuinfo"
-    {'fields': ['lrwxr-xr--', '1', 'user', 'group', '123', 'May', '25', '16:24', "'cpu", "info'", '->', '/proc/cpuinfo'], 'junk': [' ', ' ', ' ', '    ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']}
+    >>> Flow() | process_chop(model.split(' \\t\\n\\r')) | list < "lrwxr-xr-- 1 user group    123 May 25 16:24 'cpu info' -> /proc/cpuinfo"
+    ['lrwxr-xr--', '1', 'user', 'group', '123', 'May', '25', '16:24', "'cpu", "info'", '->', '/proc/cpuinfo']
     """
     match chop['type']:
         case 'split':
